@@ -6,6 +6,7 @@ import { demoStrategy, runSyntheticDemo } from '../domain/demo-engine.js';
 import { readJson, ok } from '../lib/http.js';
 import { createMarketDataProvider } from '../providers/factory.js';
 import { BybitPublicMarketDataProvider } from '../providers/bybit.js';
+import { BinancePublicMarketDataProvider } from '../providers/binance.js';
 import { UpstoxMarketDataProvider } from '../providers/upstox.js';
 import { calculateIndicators, DEFAULT_INDICATOR_PARAMETERS } from '../services/indicators.js';
 import { rateLimit } from '../middleware/rate-limit.js';
@@ -110,28 +111,36 @@ demoRoutes.get(
           .refine((value) => [1, 3, 5, 15, 30].includes(value)),
       })
       .parse(context.req.query());
-    const provider = new BybitPublicMarketDataProvider();
-    const [quote, candles] = await Promise.all([
-      provider.getQuote(query.symbol),
-      provider.getCandles(query.symbol, query.interval),
-    ]);
-    const indicators = calculateIndicators(candles);
-    return ok(context, {
-      provider: provider.id,
-      source: 'live',
-      market: 'crypto_spot',
-      symbol: query.symbol,
-      intervalMinutes: query.interval,
-      quote,
-      candles,
-      indicators,
-      latest: indicators.at(-1) ?? null,
-      freshness: {
-        quoteReceivedAt: quote.asOf,
-        latestCandleAt: candles.at(-1)?.timestamp ?? null,
-      },
-      parameters: DEFAULT_INDICATOR_PARAMETERS,
-    });
+    const providers = [new BybitPublicMarketDataProvider(), new BinancePublicMarketDataProvider()];
+    let lastError: unknown;
+    for (const provider of providers) {
+      try {
+        const [quote, candles] = await Promise.all([
+          provider.getQuote(query.symbol),
+          provider.getCandles(query.symbol, query.interval),
+        ]);
+        const indicators = calculateIndicators(candles);
+        return ok(context, {
+          provider: provider.id,
+          source: 'live',
+          market: 'crypto_spot',
+          symbol: query.symbol,
+          intervalMinutes: query.interval,
+          quote,
+          candles,
+          indicators,
+          latest: indicators.at(-1) ?? null,
+          freshness: {
+            quoteReceivedAt: quote.asOf,
+            latestCandleAt: candles.at(-1)?.timestamp ?? null,
+          },
+          parameters: DEFAULT_INDICATOR_PARAMETERS,
+        });
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError;
   },
 );
 
