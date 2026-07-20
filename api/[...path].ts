@@ -141,7 +141,13 @@ function bindingsFor(request: Request): Bindings {
 export default {
   async fetch(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
-    requestUrl.pathname = requestUrl.pathname.replace(/^\/api(?=\/)/u, "");
+    const routedPath = requestUrl.searchParams.get("path");
+    if (routedPath) {
+      requestUrl.pathname = `/${routedPath}`;
+      requestUrl.searchParams.delete("path");
+    } else {
+      requestUrl.pathname = requestUrl.pathname.replace(/^\/api(?=\/)/u, "");
+    }
     return app.fetch(new Request(requestUrl, request), bindingsFor(request));
   },
 };
