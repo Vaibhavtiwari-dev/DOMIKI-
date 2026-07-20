@@ -28,6 +28,8 @@ The Vercel adapter intentionally exposes the showcase endpoints used by the fron
 
 Deploy from the repository root. `UPSTOX_ANALYTICS_TOKEN` is optional; without it, SOL/USDT remains live through Bybit and Indian indices use clearly labeled modeled data.
 
+On Vercel, store `UPSTOX_ANALYTICS_TOKEN` as a **Sensitive** environment variable for Production and Preview. Keep it server-side (never use a `VITE_` prefix), then redeploy so the API can authorize Upstox REST and WebSocket market-data requests.
+
 ## Market data
 
 - SOL/USDT uses Bybit's public spot WebSocket directly. It requires no token and automatically reconnects with a heartbeat and exponential backoff.
