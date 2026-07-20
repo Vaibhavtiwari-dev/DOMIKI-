@@ -46,50 +46,63 @@ export interface CryptoQuote {
 
 export class BybitPublicMarketDataProvider {
   readonly id = 'bybit-public';
+  private readonly baseUrls: string[];
 
   constructor(
-    private readonly baseUrl = 'https://api.bybit.com',
+    baseUrl = 'https://api.bybit.com',
     private readonly request: typeof fetch = fetch,
   ) {
-    const url = new URL(baseUrl);
-    if (url.protocol !== 'https:' && url.hostname !== '127.0.0.1' && url.hostname !== 'localhost') {
-      throw new ApiError(
-        500,
-        'CRYPTO_PROVIDER_MISCONFIGURED',
-        'The crypto market-data provider URL must use HTTPS.',
-      );
+    this.baseUrls =
+      baseUrl === 'https://api.bybit.com' ? [baseUrl, 'https://api.bytick.com'] : [baseUrl];
+    for (const candidate of this.baseUrls) {
+      const url = new URL(candidate);
+      if (
+        url.protocol !== 'https:' &&
+        url.hostname !== '127.0.0.1' &&
+        url.hostname !== 'localhost'
+      ) {
+        throw new ApiError(
+          500,
+          'CRYPTO_PROVIDER_MISCONFIGURED',
+          'The crypto market-data provider URL must use HTTPS.',
+        );
+      }
     }
   }
 
   private async get(path: string): Promise<unknown> {
-    let response: Response;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10_000);
-    try {
-      response = await this.request.call(globalThis, `${this.baseUrl}${path}`, {
-        headers: { Accept: 'application/json' },
-        signal: controller.signal,
-      });
-    } catch {
+    let rejectedStatus: number | undefined;
+    for (const baseUrl of this.baseUrls) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
+      try {
+        const response = await this.request.call(globalThis, `${baseUrl}${path}`, {
+          headers: { Accept: 'application/json' },
+          signal: controller.signal,
+        });
+        if (response.ok) return await response.json();
+        rejectedStatus = response.status;
+      } catch {
+        // Try the next official public endpoint.
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+    if (rejectedStatus === undefined) {
       throw new ApiError(
         503,
         'CRYPTO_PROVIDER_UNAVAILABLE',
         'The public crypto market-data provider is unavailable.',
         true,
       );
-    } finally {
-      clearTimeout(timeout);
     }
-    if (!response.ok) {
-      throw new ApiError(
-        502,
-        'CRYPTO_PROVIDER_ERROR',
-        'The public crypto market-data provider rejected the request.',
-        response.status >= 500,
-        { providerStatus: response.status },
-      );
-    }
-    return response.json();
+    throw new ApiError(
+      502,
+      'CRYPTO_PROVIDER_ERROR',
+      'The public crypto market-data provider rejected the request.',
+      rejectedStatus >= 500,
+      { providerStatus: rejectedStatus },
+    );
   }
 
   async getCandles(symbol: 'SOLUSDT', intervalMinutes: number): Promise<Candle[]> {

@@ -66,4 +66,34 @@ describe('Bybit public market-data provider', () => {
       volume: 245_000.75,
     });
   });
+
+  it('falls back to the official alternate public endpoint', async () => {
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('blocked', { status: 403 }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          retCode: 0,
+          retMsg: 'OK',
+          time: 1_785_000_000_000,
+          result: {
+            list: [
+              {
+                symbol: 'SOLUSDT',
+                lastPrice: '82.25',
+                prevPrice24h: '79.50',
+                volume24h: '245000.75',
+              },
+            ],
+          },
+        }),
+      );
+    const provider = new BybitPublicMarketDataProvider(undefined, request);
+
+    await expect(provider.getQuote('SOLUSDT')).resolves.toMatchObject({ lastPrice: 82.25 });
+    expect(request.mock.calls.map(([url]) => url)).toEqual([
+      'https://api.bybit.com/v5/market/tickers?category=spot&symbol=SOLUSDT',
+      'https://api.bytick.com/v5/market/tickers?category=spot&symbol=SOLUSDT',
+    ]);
+  });
 });
