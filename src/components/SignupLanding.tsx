@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Icosahedron, Float } from '@react-three/drei';
 import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing';
+import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -75,6 +76,13 @@ const CoreMonolith = () => {
 };
 
 const GlitchForm = () => {
+  const navigate = useNavigate();
+
+  const enterDemo = () => {
+    window.localStorage.setItem('dokimi_demo_mode', 'true');
+    navigate('/demo');
+  };
+
   return (
     <div className="form-section">
       <div className="form-content-wrapper">
@@ -92,7 +100,7 @@ const GlitchForm = () => {
           </div>
           
           <div className="form-actions">
-            <button className="btn-avant" type="submit">Initialize Session</button>
+            <button className="btn-avant" type="button" onClick={enterDemo}>Initialize Session</button>
           </div>
         </form>
         
