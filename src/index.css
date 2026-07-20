@@ -135,6 +135,7 @@ h1, h2, h3, h4, .serif {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center; /* Center the wrapper */
   border-top: 1px solid var(--shadow);
   background: var(--void);
   z-index: 10;
@@ -149,35 +150,36 @@ h1, h2, h3, h4, .serif {
   }
 }
 
+.form-content-wrapper {
+  width: 100%;
+  max-width: 500px; /* Constrain max width for perfect typography line lengths */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .form-heading {
   /* Fluid sizing for form title */
-  font-size: clamp(2.5rem, 4vw, 4.5rem);
-  margin-bottom: clamp(0.5rem, 2vh, 1.5rem);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  margin-bottom: clamp(1rem, 3vh, 2rem);
   color: var(--energy);
 }
 
 .form-subtext {
-  margin-bottom: clamp(2rem, 5vh, 4rem);
+  margin-bottom: clamp(2.5rem, 6vh, 4rem);
   font-size: clamp(1rem, 2vw, 1.25rem);
   color: var(--dim);
-  max-width: 500px;
   line-height: 1.6;
 }
 
-.demo-eyebrow,
-.demo-kicker {
-  color: var(--energy);
-  font-size: 0.72rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  margin-bottom: 1.25rem;
+.avant-form {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 3vh, 2.5rem);
 }
 
-.demo-disclaimer {
-  color: var(--dim);
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  margin-top: 1rem;
+.input-group {
+  width: 100%;
 }
 
 .avant-input {
@@ -189,7 +191,6 @@ h1, h2, h3, h4, .serif {
   font-family: 'Space Mono', monospace;
   font-size: clamp(1rem, 2vw, 1.25rem);
   padding: clamp(0.75rem, 2vh, 1.25rem) 0;
-  margin-bottom: clamp(1.5rem, 3vh, 2.5rem);
   outline: none;
   transition: border-color 0.3s;
   border-radius: 0;
@@ -201,6 +202,28 @@ h1, h2, h3, h4, .serif {
 
 .avant-input::placeholder {
   color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-actions {
+  margin-top: clamp(1rem, 3vh, 2rem);
+}
+
+.form-footer {
+  margin-top: auto;
+  padding-top: clamp(3rem, 8vh, 6rem);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.footer-tag {
+  font-size: clamp(0.7rem, 1.5vw, 0.85rem);
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .noise-overlay {
@@ -224,6 +247,7 @@ h1, h2, h3, h4, .serif {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden; /* Ensure 3D bloom doesn't cause scrollbars */
 }
 
 @media (min-width: 1024px) {
