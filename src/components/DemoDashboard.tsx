@@ -38,11 +38,8 @@ interface DemoResult {
     exitReason: string;
   }>;
   manifest: {
-    strategyConfigurationHash: string;
-    datasetVersion: string;
-    engineVersion: string;
+    generatedAt: string;
   };
-  warnings: string[];
 }
 
 interface ApiResponse<T> {
@@ -100,6 +97,13 @@ function formatInr(value: number): string {
   }).format(value);
 }
 
+function formatRunTime(value: string): string {
+  return new Date(value).toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 function EquityChart({ points }: { points: DemoResult['equityCurve'] }) {
   if (points.length < 2) return <div className="chart-empty">Awaiting run data.</div>;
 
@@ -116,7 +120,7 @@ function EquityChart({ points }: { points: DemoResult['equityCurve'] }) {
     .join(' ');
 
   return (
-    <svg className="equity-chart" viewBox="0 0 1000 260" role="img" aria-label="Synthetic equity curve">
+    <svg className="equity-chart" viewBox="0 0 1000 260" role="img" aria-label="Completed backtest equity curve">
       <defs>
         <linearGradient id="equityFill" x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="#ccff00" stopOpacity="0.28" />
@@ -426,6 +430,9 @@ export function DemoDashboard() {
   const displayedIndicators = marketAnalysis?.indicators ?? result?.indicators ?? [];
   const latestCandle = displayedCandles.at(-1);
   const latestIndicator = displayedIndicators.at(-1);
+  const lastRunLabel = result
+    ? `COMPLETED ${formatRunTime(result.manifest.generatedAt)}`
+    : 'AWAITING RUN';
 
   return (
     <main className="demo-shell">
@@ -437,7 +444,7 @@ export function DemoDashboard() {
 
       <section className="demo-hero">
         <div>
-          <p className="demo-kicker">Research terminal / Synthetic dataset</p>
+          <p className="demo-kicker">Research terminal / Live market data</p>
           <h1>Strategy<br /><span>Intelligence.</span></h1>
         </div>
         <div className="strategy-summary">
@@ -534,12 +541,14 @@ export function DemoDashboard() {
 
       <section className="demo-grid">
         <article className="terminal-panel chart-panel">
-          <div className="panel-heading"><span>Equity curve</span><small>MODELED / INR</small></div>
-          <EquityChart points={result?.equityCurve ?? []} />
+          <div className="panel-heading"><span>Backtest equity curve</span><small>{lastRunLabel}</small></div>
+          <p className="panel-context">Cumulative P&amp;L from the completed strategy run. It redraws whenever a new backtest finishes.</p>
+          <EquityChart key={result?.manifest.generatedAt ?? 'waiting'} points={result?.equityCurve ?? []} />
         </article>
         <article className="terminal-panel">
-          <div className="panel-heading"><span>Recent sessions</span><small>NET P&amp;L</small></div>
-          <div className="trade-list">
+          <div className="panel-heading"><span>Backtest sessions</span><small>{result ? `${result.summary.tradeCount} TRADES` : 'AWAITING RUN'}</small></div>
+          <p className="panel-context">The latest completed trades from this strategy run, separate from live market ticks.</p>
+          <div className="trade-list" key={result?.manifest.generatedAt ?? 'waiting'}>
             {(result?.trades.slice(-6).reverse() ?? []).map((trade) => (
               <div className="trade-row" key={trade.id}>
                 <span>{trade.date}</span>
@@ -552,10 +561,7 @@ export function DemoDashboard() {
       </section>
 
       <footer className="demo-footer">
-        <div><span>Engine</span>{result?.manifest.engineVersion ?? 'initializing'}</div>
-        <div><span>Dataset</span>{result?.manifest.datasetVersion ?? 'initializing'}</div>
-        <div><span>Config hash</span>{result?.manifest.strategyConfigurationHash.slice(0, 16) ?? 'initializing'}…</div>
-        <p>Live market telemetry is for research; strategy results remain synthetic. No investment advice or live orders.</p>
+        <p>Live market data via Upstox and Bybit. Backtest results are simulated research outputs—not live orders or investment advice.</p>
       </footer>
     </main>
   );

@@ -413,6 +413,16 @@ h1, h2, h3, h4, .serif {
 
 .panel-heading small {
   color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.panel-context {
+  max-width: 68ch;
+  padding: 0.85rem 1.25rem 0;
+  color: var(--dim);
+  font-size: 0.68rem;
+  line-height: 1.55;
+  text-wrap: pretty;
 }
 
 .equity-chart {
@@ -427,11 +437,15 @@ h1, h2, h3, h4, .serif {
   fill: none;
   stroke: var(--energy);
   stroke-width: 3;
+  stroke-dasharray: 1800;
+  stroke-dashoffset: 1800;
   vector-effect: non-scaling-stroke;
+  animation: equity-draw 850ms ease-out forwards;
 }
 
 .equity-area {
   fill: url(#equityFill);
+  animation: equity-fill-in 450ms 300ms ease-out both;
 }
 
 .chart-empty {
@@ -451,6 +465,26 @@ h1, h2, h3, h4, .serif {
   padding: 0.9rem 0;
   border-bottom: 1px solid var(--shadow);
   font-size: 0.72rem;
+  animation: session-enter 260ms ease-out both;
+}
+
+@keyframes equity-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes equity-fill-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes session-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
 }
 
 .trade-reason {
@@ -748,26 +782,20 @@ h1, h2, h3, h4, .serif {
 }
 
 .demo-footer {
-  display: grid;
-  grid-template-columns: repeat(3, auto) 1fr;
-  gap: 2rem;
-  padding-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding: 1.25rem 0 0;
+  border-top: 1px solid var(--shadow);
   color: var(--dim);
   font-size: 0.65rem;
 }
 
-.demo-footer div {
-  color: var(--chrome);
-}
-
-.demo-footer span {
-  display: block;
-  margin-bottom: 0.3rem;
-}
-
 .demo-footer p {
+  max-width: 760px;
   text-align: right;
-  align-self: end;
+  line-height: 1.6;
+  text-wrap: pretty;
 }
 
 @media (max-width: 900px) {
@@ -787,10 +815,6 @@ h1, h2, h3, h4, .serif {
 
   .metrics-grid article:nth-child(-n+2) {
     border-bottom: 1px solid var(--shadow);
-  }
-
-  .demo-footer {
-    grid-template-columns: 1fr 1fr;
   }
 
   .demo-footer p {
@@ -834,10 +858,6 @@ h1, h2, h3, h4, .serif {
     border-bottom: 1px solid var(--shadow);
   }
 
-  .demo-footer {
-    grid-template-columns: 1fr;
-  }
-
   .demo-footer p {
     text-align: left;
   }
@@ -865,5 +885,13 @@ h1, h2, h3, h4, .serif {
   .provider-banner {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .equity-line,
+  .equity-area,
+  .trade-row {
+    animation: none;
   }
 }
