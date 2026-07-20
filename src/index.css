@@ -297,27 +297,33 @@ h1, h2, h3, h4, .serif {
 
 .demo-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
-  gap: 4rem;
+  grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr);
+  gap: clamp(3rem, 7vw, 7rem);
   padding: clamp(3rem, 8vh, 7rem) 0;
-  align-items: end;
+  align-items: center;
 }
 
 .demo-hero h1 {
-  font-size: clamp(3.5rem, 8vw, 8.5rem);
+  font-size: clamp(3.5rem, 7vw, 7.75rem);
   line-height: 0.82;
 }
 
 .strategy-summary {
-  border-top: 1px solid var(--dim);
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--shadow);
+  background: rgba(255, 255, 255, 0.015);
 }
 
 .strategy-summary > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.9rem 0;
-  border-bottom: 1px solid var(--shadow);
+  display: grid;
+  grid-template-columns: minmax(90px, 0.36fr) minmax(0, 0.64fr);
+  align-items: baseline;
+  gap: 1.25rem;
+  min-height: 50px;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--shadow);
   font-size: 0.75rem;
 }
 
@@ -331,12 +337,14 @@ h1, h2, h3, h4, .serif {
 .strategy-summary strong {
   text-align: right;
   font-weight: 400;
+  line-height: 1.5;
+  text-wrap: balance;
 }
 
 .run-button {
   width: 100%;
   padding: 1rem;
-  margin-top: 1rem;
+  margin-top: 0.25rem;
   border: 1px solid var(--energy);
   background: var(--energy);
   color: var(--void);
@@ -514,6 +522,87 @@ h1, h2, h3, h4, .serif {
   border-bottom: 1px solid var(--shadow);
 }
 
+.indicator-picker {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.28fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  padding: 1rem clamp(1.25rem, 3vw, 2.5rem);
+  border-bottom: 1px solid var(--shadow);
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.indicator-picker-copy {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.indicator-picker-copy strong {
+  color: var(--chrome);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.indicator-picker-copy span {
+  color: var(--dim);
+  font-size: 0.62rem;
+  line-height: 1.45;
+}
+
+.indicator-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.indicator-option,
+.indicator-clear {
+  min-height: 40px;
+  border: 1px solid var(--shadow);
+  background: var(--void);
+  color: var(--dim);
+  padding: 0.55rem 0.75rem;
+  font: 0.62rem 'Space Mono', monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 100ms ease;
+}
+
+.indicator-option:hover,
+.indicator-option:focus-visible {
+  border-color: var(--chrome);
+  color: var(--chrome);
+}
+
+.indicator-option:active,
+.indicator-clear:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.indicator-option.selected {
+  border-color: var(--energy);
+  background: rgba(204, 255, 0, 0.08);
+  color: var(--energy);
+}
+
+.indicator-clear {
+  border-color: transparent;
+  background: transparent;
+  white-space: nowrap;
+}
+
+.indicator-clear:hover:not(:disabled),
+.indicator-clear:focus-visible {
+  color: var(--chrome);
+}
+
+.indicator-clear:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .live-lab-header h2 {
   font-size: clamp(2rem, 4vw, 4rem);
 }
@@ -665,6 +754,14 @@ h1, h2, h3, h4, .serif {
   grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.4fr);
 }
 
+.market-live-grid.chart-only {
+  grid-template-columns: 1fr;
+}
+
+.market-live-grid.chart-only .market-chart-wrap {
+  border-right: 0;
+}
+
 .market-chart-wrap {
   padding: 1.25rem;
   border-right: 1px solid var(--shadow);
@@ -738,6 +835,7 @@ h1, h2, h3, h4, .serif {
 
 .chart-legend {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   font-size: 0.6rem;
 }
@@ -801,7 +899,7 @@ h1, h2, h3, h4, .serif {
 @media (max-width: 900px) {
   .demo-hero,
   .demo-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 2rem;
   }
 
@@ -830,6 +928,14 @@ h1, h2, h3, h4, .serif {
     flex-wrap: wrap;
   }
 
+  .indicator-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .indicator-clear {
+    justify-self: start;
+  }
+
   .market-live-grid {
     grid-template-columns: 1fr;
   }
@@ -841,6 +947,10 @@ h1, h2, h3, h4, .serif {
 }
 
 @media (max-width: 560px) {
+  .demo-hero h1 {
+    font-size: clamp(2.25rem, 12vw, 3.5rem);
+  }
+
   .demo-header {
     grid-template-columns: 1fr auto;
   }
@@ -880,6 +990,15 @@ h1, h2, h3, h4, .serif {
 
   .indicator-readout {
     grid-template-columns: 1fr;
+  }
+
+  .strategy-summary > div {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  .strategy-summary strong {
+    text-align: left;
   }
 
   .provider-banner {

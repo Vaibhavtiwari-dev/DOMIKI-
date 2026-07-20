@@ -89,6 +89,19 @@ interface MarketAnalysis {
   freshness: { quoteReceivedAt: string | null; latestCandleAt: string | null };
 }
 
+const INDICATOR_OPTIONS = [
+  { id: 'ema', label: 'EMA 20' },
+  { id: 'bollinger', label: 'Bollinger 20/2' },
+  { id: 'supertrend', label: 'Supertrend 10/3' },
+  { id: 'rsi', label: 'RSI 14' },
+  { id: 'macd', label: 'MACD' },
+  { id: 'atr', label: 'ATR 14' },
+  { id: 'vwap', label: 'VWAP' },
+  { id: 'volume', label: 'Volume' },
+] as const;
+
+type IndicatorId = (typeof INDICATOR_OPTIONS)[number]['id'];
+
 function formatInr(value: number): string {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -136,21 +149,29 @@ function EquityChart({ points }: { points: DemoResult['equityCurve'] }) {
 function CandlestickChart({
   candles: allCandles,
   indicators: allIndicators,
+  selectedIndicators,
   live,
 }: {
   candles: ChartCandle[];
   indicators: ChartIndicator[];
+  selectedIndicators: IndicatorId[];
   live: boolean;
 }) {
   const candles = allCandles.slice(-80);
   const indicators = allIndicators.slice(-80);
   if (candles.length < 2) return <div className="chart-empty">Preparing market candles.</div>;
-  const values = candles.flatMap((candle, index) => [
-    candle.high,
-    candle.low,
-    indicators[index]?.bollingerUpper ?? candle.close,
-    indicators[index]?.bollingerLower ?? candle.close,
-  ]);
+  const values = candles.flatMap((candle, index) => {
+    const chartValues = [candle.high, candle.low];
+    if (selectedIndicators.includes('bollinger')) {
+      chartValues.push(
+        indicators[index]?.bollingerUpper ?? candle.close,
+        indicators[index]?.bollingerLower ?? candle.close,
+      );
+    }
+    if (selectedIndicators.includes('ema')) chartValues.push(indicators[index]?.ema ?? candle.close);
+    if (selectedIndicators.includes('supertrend')) chartValues.push(indicators[index]?.supertrend ?? candle.close);
+    return chartValues;
+  });
   const minimum = Math.min(...values);
   const maximum = Math.max(...values);
   const spread = maximum - minimum || 1;
@@ -177,9 +198,13 @@ function CandlestickChart({
   const supertrendPath = pathFor((index) => indicators[index]?.supertrend ?? null);
 
   return (
-    <svg className="market-chart" viewBox="0 0 1000 260" role="img" aria-label={`${live ? 'Live' : 'Modeled'} OHLC candles with technical indicators`}>
-      <path className="market-band" d={upperPath} />
-      <path className="market-band" d={lowerPath} />
+    <svg className="market-chart" viewBox="0 0 1000 260" role="img" aria-label={`${live ? 'Live' : 'Modeled'} OHLC candlestick chart`}>
+      {selectedIndicators.includes('bollinger') && (
+        <>
+          <path className="market-band" d={upperPath} />
+          <path className="market-band" d={lowerPath} />
+        </>
+      )}
       {candles.map((candle, index) => {
         const x = index * step + step / 2;
         const bullish = candle.close >= candle.open;
@@ -192,8 +217,8 @@ function CandlestickChart({
           </g>
         );
       })}
-      <path className="market-ema" d={emaPath} />
-      <path className="market-supertrend" d={supertrendPath} />
+      {selectedIndicators.includes('ema') && <path className="market-ema" d={emaPath} />}
+      {selectedIndicators.includes('supertrend') && <path className="market-supertrend" d={supertrendPath} />}
     </svg>
   );
 }
@@ -211,6 +236,7 @@ export function DemoDashboard() {
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketError, setMarketError] = useState('');
   const [streamStatus, setStreamStatus] = useState<CryptoStreamStatus>('offline');
+  const [selectedIndicators, setSelectedIndicators] = useState<IndicatorId[]>([]);
   const marketRequestId = useRef(0);
 
   const runBacktest = useCallback(async (selectedStrategy: DemoStrategy) => {
@@ -430,6 +456,14 @@ export function DemoDashboard() {
   const displayedIndicators = marketAnalysis?.indicators ?? result?.indicators ?? [];
   const latestCandle = displayedCandles.at(-1);
   const latestIndicator = displayedIndicators.at(-1);
+  const selectedReadouts = [
+    { id: 'rsi' as const, label: 'RSI 14', value: latestIndicator?.rsi?.toFixed(2) ?? '—' },
+    { id: 'macd' as const, label: 'MACD', value: latestIndicator?.macd?.toFixed(2) ?? '—' },
+    { id: 'atr' as const, label: 'ATR 14', value: latestIndicator?.atr?.toFixed(2) ?? '—' },
+    { id: 'vwap' as const, label: 'VWAP', value: latestIndicator?.vwap?.toFixed(2) ?? '—' },
+    { id: 'supertrend' as const, label: 'Supertrend', value: latestIndicator?.supertrendDirection?.toUpperCase() ?? '—' },
+    { id: 'volume' as const, label: 'Volume', value: (marketAnalysis?.quote.volume ?? latestCandle?.volume ?? 0).toLocaleString('en-IN') },
+  ].filter(({ id }) => selectedIndicators.includes(id));
   const lastRunLabel = result
     ? `COMPLETED ${formatRunTime(result.manifest.generatedAt)}`
     : 'AWAITING RUN';
@@ -506,6 +540,41 @@ export function DemoDashboard() {
           </div>
         </div>
 
+        <div className="indicator-picker" role="group" aria-labelledby="indicator-picker-label">
+          <div className="indicator-picker-copy">
+            <strong id="indicator-picker-label">Indicators</strong>
+            <span>Candles only by default. Add the studies you need.</span>
+          </div>
+          <div className="indicator-options">
+            {INDICATOR_OPTIONS.map((indicator) => {
+              const isSelected = selectedIndicators.includes(indicator.id);
+              return (
+                <button
+                  key={indicator.id}
+                  type="button"
+                  className={isSelected ? 'indicator-option selected' : 'indicator-option'}
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedIndicators((current) => (
+                    current.includes(indicator.id)
+                      ? current.filter((id) => id !== indicator.id)
+                      : [...current, indicator.id]
+                  ))}
+                >
+                  {indicator.label}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            className="indicator-clear"
+            disabled={selectedIndicators.length === 0}
+            onClick={() => setSelectedIndicators([])}
+          >
+            Clear all
+          </button>
+        </div>
+
         {!liveMarket && (
           <div className="provider-banner">
             <span className="provider-state">MODELED OHLC / LIVE FEED READY</span>
@@ -513,25 +582,25 @@ export function DemoDashboard() {
           </div>
         )}
         {displayedCandles.length > 0 ? (
-          <div className="market-live-grid">
+          <div className={`market-live-grid${selectedReadouts.length === 0 ? ' chart-only' : ''}`}>
             <div className="market-chart-wrap">
               <div className="market-quote">
                 <div><span>{marketAnalysis?.symbol ?? strategy?.underlying ?? 'NIFTY'}</span><strong>{(marketAnalysis?.quote.lastPrice ?? latestCandle?.close ?? 0).toLocaleString('en-IN')}</strong></div>
                 <small>{liveMarket ? marketAnalysis?.market === 'crypto_spot' ? 'PUBLIC WEBSOCKET STREAM' : 'EXCHANGE-BACKED LIVE DATA' : 'DETERMINISTIC MODELED BACKTEST DATA'} · Latest candle {latestCandle ? new Date(latestCandle.timestamp).toLocaleString('en-IN') : 'pending'} · Synced {marketAnalysis?.freshness.quoteReceivedAt ? new Date(marketAnalysis.freshness.quoteReceivedAt).toLocaleTimeString('en-IN') : 'pending'}</small>
               </div>
-              <CandlestickChart candles={displayedCandles} indicators={displayedIndicators} live={liveMarket} />
-              <div className="chart-legend"><span className="legend-price">OHLC CANDLES</span><span className="legend-ema">EMA 20</span><span className="legend-band">BOLLINGER 20/2</span><span className="legend-supertrend">SUPERTREND 10/3</span></div>
+              <CandlestickChart candles={displayedCandles} indicators={displayedIndicators} selectedIndicators={selectedIndicators} live={liveMarket} />
+              <div className="chart-legend">
+                <span className="legend-price">OHLC CANDLES</span>
+                {selectedIndicators.includes('ema') && <span className="legend-ema">EMA 20</span>}
+                {selectedIndicators.includes('bollinger') && <span className="legend-band">BOLLINGER 20/2</span>}
+                {selectedIndicators.includes('supertrend') && <span className="legend-supertrend">SUPERTREND 10/3</span>}
+              </div>
             </div>
-            <div className="indicator-readout">
-              {[
-                ['RSI 14', latestIndicator?.rsi?.toFixed(2) ?? '—'],
-                ['MACD', latestIndicator?.macd?.toFixed(2) ?? '—'],
-                ['ATR 14', latestIndicator?.atr?.toFixed(2) ?? '—'],
-                ['VWAP', latestIndicator?.vwap?.toFixed(2) ?? '—'],
-                ['Supertrend', latestIndicator?.supertrendDirection?.toUpperCase() ?? '—'],
-                ['Volume', (marketAnalysis?.quote.volume ?? latestCandle?.volume ?? 0).toLocaleString('en-IN')],
-              ].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}
-            </div>
+            {selectedReadouts.length > 0 && (
+              <div className="indicator-readout">
+                {selectedReadouts.map(({ id, label, value }) => <div key={id}><span>{label}</span><strong>{value}</strong></div>)}
+              </div>
+            )}
           </div>
         ) : (
           <div className="provider-setup">Preparing backtesting candles…</div>
