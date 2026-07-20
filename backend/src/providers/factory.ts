@@ -1,6 +1,6 @@
-import type { Bindings } from '../types';
-import type { MarketDataProvider } from '../domain/market-data';
-import { UpstoxMarketDataProvider } from './upstox';
+import type { Bindings } from '../types.js';
+import type { MarketDataProvider } from '../domain/market-data.js';
+import { UpstoxMarketDataProvider } from './upstox.js';
 
 export function createMarketDataProvider(bindings: Bindings): MarketDataProvider {
   return new UpstoxMarketDataProvider(

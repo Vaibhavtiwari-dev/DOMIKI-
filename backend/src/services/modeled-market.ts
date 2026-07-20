@@ -1,5 +1,5 @@
-import type { Candle, MarketSymbol } from '../domain/market-data';
-import { calculateIndicators, DEFAULT_INDICATOR_PARAMETERS } from './indicators';
+import type { Candle, MarketSymbol } from '../domain/market-data.js';
+import { calculateIndicators, DEFAULT_INDICATOR_PARAMETERS } from './indicators.js';
 
 const BASELINES: Record<MarketSymbol, number> = {
   NIFTY: 24_600,

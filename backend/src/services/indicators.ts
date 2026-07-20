@@ -1,4 +1,4 @@
-import type { Candle } from '../domain/market-data';
+import type { Candle } from '../domain/market-data.js';
 
 export interface IndicatorParameters {
   smaPeriod: number;

@@ -7,9 +7,9 @@ import type {
   OptionChainStrike,
   OptionGreeks,
   OptionMarketData,
-} from '../domain/market-data';
-import { MARKET_INSTRUMENTS } from '../domain/market-data';
-import { ApiError } from '../lib/errors';
+} from '../domain/market-data.js';
+import { MARKET_INSTRUMENTS } from '../domain/market-data.js';
+import { ApiError } from '../lib/errors.js';
 
 const candleSchema = z.tuple([
   z.string().datetime({ offset: true }),

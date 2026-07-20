@@ -1,4 +1,4 @@
-import { ApiError } from './errors';
+import { ApiError } from './errors.js';
 
 const encoder = new TextEncoder();
 const PASSWORD_ITERATIONS = 600_000;

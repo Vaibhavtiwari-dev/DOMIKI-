@@ -1,11 +1,11 @@
 import { Hono } from "hono";
-import { ApiError, toApiError } from "../backend/src/lib/errors";
-import { ok } from "../backend/src/lib/http";
-import { requestContext } from "../backend/src/middleware/request-context";
-import { security } from "../backend/src/middleware/security";
-import { demoRoutes } from "../backend/src/routes/demo";
-import type { AppEnvironment } from "../backend/src/types";
-import type { Bindings } from "../backend/src/types";
+import { ApiError, toApiError } from "../backend/src/lib/errors.js";
+import { ok } from "../backend/src/lib/http.js";
+import { requestContext } from "../backend/src/middleware/request-context.js";
+import { security } from "../backend/src/middleware/security.js";
+import { demoRoutes } from "../backend/src/routes/demo.js";
+import type { AppEnvironment } from "../backend/src/types.js";
+import type { Bindings } from "../backend/src/types.js";
 
 interface Counter {
   count: number;

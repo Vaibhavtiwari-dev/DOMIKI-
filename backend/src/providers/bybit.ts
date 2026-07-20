@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { Candle } from '../domain/market-data';
-import { ApiError } from '../lib/errors';
+import type { Candle } from '../domain/market-data.js';
+import { ApiError } from '../lib/errors.js';
 
 const numericString = z.coerce.number().finite();
 const klineSchema = z.tuple([

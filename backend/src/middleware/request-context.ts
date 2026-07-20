@@ -1,5 +1,5 @@
 import { createMiddleware } from 'hono/factory';
-import type { AppEnvironment } from '../types';
+import type { AppEnvironment } from '../types.js';
 
 export const requestContext = createMiddleware<AppEnvironment>(async (context, next) => {
   const supplied = context.req.header('x-request-id');

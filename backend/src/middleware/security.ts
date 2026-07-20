@@ -1,6 +1,6 @@
 import { createMiddleware } from 'hono/factory';
-import type { AppEnvironment } from '../types';
-import { ApiError } from '../lib/errors';
+import type { AppEnvironment } from '../types.js';
+import { ApiError } from '../lib/errors.js';
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 

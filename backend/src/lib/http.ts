@@ -1,5 +1,5 @@
 import type { Context } from 'hono';
-import type { AppEnvironment } from '../types';
+import type { AppEnvironment } from '../types.js';
 
 export function ok<T>(
   context: Context<AppEnvironment>,

@@ -1,8 +1,8 @@
 import { createMiddleware } from 'hono/factory';
-import type { AppEnvironment } from '../types';
-import { ApiError } from '../lib/errors';
-import { clientIp } from '../lib/http';
-import { redactIp, sha256Hex } from '../lib/crypto';
+import type { AppEnvironment } from '../types.js';
+import { ApiError } from '../lib/errors.js';
+import { clientIp } from '../lib/http.js';
+import { redactIp, sha256Hex } from '../lib/crypto.js';
 
 interface RateLimitOptions {
   scope: string;

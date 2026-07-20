@@ -1,16 +1,16 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import type { AppEnvironment } from '../types';
-import { strategyConfigurationSchema } from '../domain/strategy-schema';
-import { demoStrategy, runSyntheticDemo } from '../domain/demo-engine';
-import { readJson, ok } from '../lib/http';
-import { createMarketDataProvider } from '../providers/factory';
-import { BybitPublicMarketDataProvider } from '../providers/bybit';
-import { UpstoxMarketDataProvider } from '../providers/upstox';
-import { calculateIndicators, DEFAULT_INDICATOR_PARAMETERS } from '../services/indicators';
-import { rateLimit } from '../middleware/rate-limit';
-import { generateModeledMarketAnalysis } from '../services/modeled-market';
-import { MARKET_INSTRUMENTS } from '../domain/market-data';
+import type { AppEnvironment } from '../types.js';
+import { strategyConfigurationSchema } from '../domain/strategy-schema.js';
+import { demoStrategy, runSyntheticDemo } from '../domain/demo-engine.js';
+import { readJson, ok } from '../lib/http.js';
+import { createMarketDataProvider } from '../providers/factory.js';
+import { BybitPublicMarketDataProvider } from '../providers/bybit.js';
+import { UpstoxMarketDataProvider } from '../providers/upstox.js';
+import { calculateIndicators, DEFAULT_INDICATOR_PARAMETERS } from '../services/indicators.js';
+import { rateLimit } from '../middleware/rate-limit.js';
+import { generateModeledMarketAnalysis } from '../services/modeled-market.js';
+import { MARKET_INSTRUMENTS } from '../domain/market-data.js';
 
 const demoRunSchema = z.object({ configuration: strategyConfigurationSchema }).strict();
 const marketSymbolSchema = z.enum([

@@ -1,7 +1,7 @@
-import type { StrategyConfiguration } from './strategy-schema';
-import type { Candle } from './market-data';
-import { canonicalJson, sha256Hex } from '../lib/crypto';
-import { calculateIndicators } from '../services/indicators';
+import type { StrategyConfiguration } from './strategy-schema.js';
+import type { Candle } from './market-data.js';
+import { canonicalJson, sha256Hex } from '../lib/crypto.js';
+import { calculateIndicators } from '../services/indicators.js';
 
 interface DemoTrade {
   id: string;
