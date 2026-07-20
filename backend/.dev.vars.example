@@ -1,0 +1,7 @@
+# Copy to .dev.vars. Never commit real values.
+SESSION_SIGNING_SECRET=replace-with-at-least-32-random-bytes
+DATASET_SIGNING_SECRET=replace-with-a-separate-at-least-32-byte-secret
+PASSWORD_RESET_WEBHOOK_URL=https://example.invalid/dokimi/password-reset
+OPERATOR_API_KEY=replace-with-a-long-random-key
+# Generate a one-year, read-only Analytics Token in the Upstox Developer Apps page.
+UPSTOX_ANALYTICS_TOKEN=
