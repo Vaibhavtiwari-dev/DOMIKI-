@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && npm run typecheck:api && vite build",
     "lint": "oxlint",
+    "test": "vitest run",
+    "audit": "npm audit --audit-level=high",
+    "check": "npm run build && npm run lint && npm run test && npm run audit",
     "preview": "vite preview",
     "typecheck:api": "tsc -p tsconfig.api.json"
   },
@@ -34,6 +37,7 @@
     "@vitejs/plugin-react": "^6.0.3",
     "oxlint": "^1.71.0",
     "typescript": "~6.0.2",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "vitest": "^4.1.10"
   }
 }
