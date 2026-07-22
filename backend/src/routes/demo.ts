@@ -12,6 +12,13 @@ import { calculateIndicators, DEFAULT_INDICATOR_PARAMETERS } from '../services/i
 import { rateLimit } from '../middleware/rate-limit.js';
 import { generateModeledMarketAnalysis } from '../services/modeled-market.js';
 import { MARKET_INSTRUMENTS } from '../domain/market-data.js';
+import { loadRecentCandles } from '../services/market-history.js';
+import {
+  endDemoSession,
+  hasValidDemoSession,
+  requireDemoSession,
+  startDemoSession,
+} from '../lib/demo-session.js';
 
 const demoRunSchema = z.object({ configuration: strategyConfigurationSchema }).strict();
 const marketSymbolSchema = z.enum([
@@ -40,6 +47,27 @@ const historicalQuerySchema = z
   );
 
 export const demoRoutes = new Hono<AppEnvironment>();
+
+demoRoutes.post(
+  '/session',
+  rateLimit({ scope: 'demo_session', limit: 10, windowSeconds: 60 }),
+  async (context) =>
+    ok(context, {
+      mode: 'research_alpha',
+      expiresAt: await startDemoSession(context),
+    }),
+);
+
+demoRoutes.get('/session', async (context) =>
+  ok(context, { active: await hasValidDemoSession(context) }),
+);
+
+demoRoutes.delete('/session', (context) => {
+  endDemoSession(context);
+  return context.body(null, 204);
+});
+
+demoRoutes.use('*', requireDemoSession);
 
 demoRoutes.get('/', (context) =>
   ok(context, {
@@ -154,7 +182,7 @@ demoRoutes.get(
       provider.getQuote(query.symbol),
       query.from && query.to
         ? provider.getHistoricalCandles(query.symbol, query.interval, query.from, query.to)
-        : provider.getIntradayCandles(query.symbol, query.interval),
+        : loadRecentCandles(provider, query.symbol, query.interval),
     ]);
     const indicators = calculateIndicators(candles);
     return ok(context, {
@@ -189,6 +217,26 @@ demoRoutes.get(
       })
       .parse(context.req.query());
     return ok(context, generateModeledMarketAnalysis(query.symbol, query.interval));
+  },
+);
+
+demoRoutes.get(
+  '/market/expiries',
+  rateLimit({ scope: 'demo_market_expiries', limit: 20, windowSeconds: 60 }),
+  async (context) => {
+    const input = z
+      .object({ symbol: marketSymbolSchema.default('NIFTY') })
+      .parse(context.req.query());
+    const provider = createMarketDataProvider(context.env);
+    const contracts = await provider.getOptionContracts(input.symbol);
+    const expiries = [...new Set(contracts.map((contract) => contract.expiry))].sort();
+    const lotSizeByExpiry = Object.fromEntries(
+      expiries.map((expiry) => [
+        expiry,
+        contracts.find((contract) => contract.expiry === expiry)?.lotSize ?? null,
+      ]),
+    );
+    return ok(context, { provider: provider.id, source: 'live', expiries, lotSizeByExpiry });
   },
 );
 
