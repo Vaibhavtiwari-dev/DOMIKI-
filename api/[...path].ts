@@ -125,8 +125,7 @@ function bindingsFor(request: Request): Bindings {
     PHONE_VERIFICATION_REQUIRED: "false",
     SESSION_TTL_SECONDS: "2592000",
     MAX_RESULT_BYTES: "5242880",
-    SESSION_SIGNING_SECRET:
-      process.env.SESSION_SIGNING_SECRET ?? "vercel-demo-session-disabled",
+    SESSION_SIGNING_SECRET: process.env.SESSION_SIGNING_SECRET ?? "",
     DATASET_SIGNING_SECRET:
       process.env.DATASET_SIGNING_SECRET ?? "vercel-demo-dataset-disabled",
     UPSTOX_API_BASE_URL:
