@@ -5,6 +5,14 @@ import {
   type CryptoStreamStatus,
 } from '../services/bybitStream';
 import { connectUpstoxMarketStream } from '../services/upstoxStream';
+import { endResearchSession } from '../services/api';
+import { BasketManager } from './BasketManager';
+import { HistoricalSimulator } from './HistoricalSimulator';
+import { LiveBuilder } from './LiveBuilder';
+import { PaperPortfolio } from './PaperPortfolio';
+import { QuickBacktest } from './QuickBacktest';
+import { ResultsLibrary } from './ResultsLibrary';
+import { WorkspaceShell, type WorkspaceId } from './WorkspaceShell';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? 'http://localhost:8787' : '/api');
@@ -223,8 +231,7 @@ function CandlestickChart({
   );
 }
 
-export function DemoDashboard() {
-  const navigate = useNavigate();
+function OverviewDashboard() {
   const [strategy, setStrategy] = useState<DemoStrategy | null>(null);
   const [result, setResult] = useState<DemoResult | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'running' | 'error'>('loading');
@@ -245,6 +252,7 @@ export function DemoDashboard() {
     try {
       const response = await fetch(`${API_BASE_URL}/v1/demo/backtest`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ configuration: selectedStrategy }),
       });
@@ -261,7 +269,7 @@ export function DemoDashboard() {
   useEffect(() => {
     const loadDemo = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/v1/demo/strategy`);
+        const response = await fetch(`${API_BASE_URL}/v1/demo/strategy`, { credentials: 'include' });
         if (!response.ok) throw new Error('The demo strategy could not be loaded.');
         const payload = (await response.json()) as ApiResponse<DemoStrategy>;
         setStrategy(payload.data);
@@ -278,18 +286,17 @@ export function DemoDashboard() {
   const refreshMarket = useCallback(async (
     symbol: string,
     interval: string,
-    equityLiveConfigured: boolean,
+    _equityLiveConfigured: boolean,
   ) => {
     const requestId = ++marketRequestId.current;
     setMarketLoading(true);
     setMarketError('');
+    setMarketAnalysis((current) =>
+      current?.symbol === symbol && current.intervalMinutes === Number(interval) ? current : null,
+    );
     try {
-      const route = symbol === 'SOLUSDT'
-        ? 'crypto/analysis'
-        : equityLiveConfigured
-          ? 'market/analysis'
-          : 'market/modeled-analysis';
-      const response = await fetch(`${API_BASE_URL}/v1/demo/${route}?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}`);
+      const route = symbol === 'SOLUSDT' ? 'crypto/analysis' : 'market/analysis';
+      const response = await fetch(`${API_BASE_URL}/v1/demo/${route}?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}`, { credentials: 'include' });
       const payload = (await response.json()) as ApiResponse<MarketAnalysis> & {
         error?: { message?: string };
       };
@@ -307,7 +314,7 @@ export function DemoDashboard() {
   useEffect(() => {
     const loadMarketStatus = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/v1/demo/market/status`);
+        const response = await fetch(`${API_BASE_URL}/v1/demo/market/status`, { credentials: 'include' });
         if (!response.ok) throw new Error('Market-data status is unavailable.');
         const payload = (await response.json()) as ApiResponse<MarketStatus>;
         setMarketStatus(payload.data);
@@ -446,14 +453,9 @@ export function DemoDashboard() {
     });
   }, [marketInterval, marketStatus?.configured, marketSymbol]);
 
-  const leaveDemo = () => {
-    window.localStorage.removeItem('dokimi_demo_mode');
-    navigate('/');
-  };
-
   const liveMarket = marketAnalysis?.source === 'live';
-  const displayedCandles = marketAnalysis?.candles ?? result?.marketCandles ?? [];
-  const displayedIndicators = marketAnalysis?.indicators ?? result?.indicators ?? [];
+  const displayedCandles = marketAnalysis?.candles ?? [];
+  const displayedIndicators = marketAnalysis?.indicators ?? [];
   const latestCandle = displayedCandles.at(-1);
   const latestIndicator = displayedIndicators.at(-1);
   const selectedReadouts = [
@@ -470,12 +472,6 @@ export function DemoDashboard() {
 
   return (
     <main className="demo-shell">
-      <header className="demo-header">
-        <div className="demo-wordmark">DOKIMI<span>.</span></div>
-        <div className="demo-header-status"><span className="status-dot" /> VERSION 1</div>
-        <button type="button" className="text-button" onClick={leaveDemo}>Home</button>
-      </header>
-
       <section className="demo-hero">
         <div>
           <p className="demo-kicker">Research terminal / Live market data</p>
@@ -533,8 +529,8 @@ export function DemoDashboard() {
                 <span /> {streamStatus === 'live' ? 'Streaming live' : streamStatus}
               </div>
             ) : (
-              <div className={`stream-status ${marketStatus?.configured ? streamStatus : 'auto'}`} aria-live="polite">
-                <span /> {marketLoading ? 'Syncing…' : marketStatus?.configured ? streamStatus === 'live' ? 'Streaming live' : streamStatus : 'Modeled auto'}
+              <div className={`stream-status ${marketStatus?.configured ? streamStatus : 'offline'}`} aria-live="polite">
+                <span /> {marketLoading ? 'Syncing…' : marketStatus?.configured ? streamStatus === 'live' ? 'Streaming live' : streamStatus : 'Provider required'}
               </div>
             )}
           </div>
@@ -575,10 +571,10 @@ export function DemoDashboard() {
           </button>
         </div>
 
-        {!liveMarket && (
+        {marketSymbol !== 'SOLUSDT' && !marketStatus?.configured && (
           <div className="provider-banner">
-            <span className="provider-state">MODELED OHLC / LIVE FEED READY</span>
-            <p>This equity instrument updates with its own modeled candles and interval. Add the read-only Upstox Analytics Token to replace it with exchange-backed data; SOL/USDT is already live and free.</p>
+            <span className="provider-state">EQUITY PROVIDER NOT CONFIGURED</span>
+            <p>Add the read-only Upstox Analytics Token on the backend. Professional mode never substitutes fabricated equity candles.</p>
           </div>
         )}
         {displayedCandles.length > 0 ? (
@@ -603,7 +599,7 @@ export function DemoDashboard() {
             )}
           </div>
         ) : (
-          <div className="provider-setup">Preparing backtesting candles…</div>
+          <div className="provider-setup">{marketLoading ? 'Loading market candles…' : 'No verified candles available.'}</div>
         )}
         {marketError && <div className="market-error" role="alert">{marketError}</div>}
       </section>
@@ -629,9 +625,30 @@ export function DemoDashboard() {
         </article>
       </section>
 
-      <footer className="demo-footer">
-        <p>Live market data via Upstox and Bybit. Backtest results are simulated research outputs—not live orders or investment advice.</p>
-      </footer>
     </main>
+  );
+}
+
+export function DemoDashboard() {
+  const navigate = useNavigate();
+  const [workspace, setWorkspace] = useState<WorkspaceId>('overview');
+  const exit = async () => {
+    try {
+      await endResearchSession();
+    } finally {
+      navigate('/');
+    }
+  };
+
+  return (
+    <WorkspaceShell active={workspace} onChange={setWorkspace} onExit={() => void exit()}>
+      {workspace === 'overview' && <OverviewDashboard />}
+      {workspace === 'backtest' && <QuickBacktest />}
+      {workspace === 'results' && <ResultsLibrary />}
+      {workspace === 'baskets' && <BasketManager />}
+      {workspace === 'simulator' && <HistoricalSimulator />}
+      {workspace === 'builder' && <LiveBuilder />}
+      {workspace === 'portfolio' && <PaperPortfolio />}
+    </WorkspaceShell>
   );
 }
