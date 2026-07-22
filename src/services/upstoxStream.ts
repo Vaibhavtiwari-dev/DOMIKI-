@@ -80,7 +80,7 @@ export function connectUpstoxMarketStream(options: StreamOptions): () => void {
     try {
       const response = await fetch(
         `${options.apiBaseUrl}/v1/demo/market/stream-url?symbol=${encodeURIComponent(options.symbol)}`,
-        { signal: authorizationRequest.signal },
+        { signal: authorizationRequest.signal, credentials: 'include' },
       );
       const payload = (await response.json()) as StreamAuthorization;
       if (!response.ok || !payload.data?.url || !payload.data.instrumentKey) {
