@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Candle } from '../domain/market-data.js';
 import { ApiError } from '../lib/errors.js';
+import { parseProviderJson } from '../lib/provider-response.js';
 
 const numericString = z.coerce.number().finite();
 const klineSchema = z.tuple([
@@ -70,7 +71,7 @@ export class BybitPublicMarketDataProvider {
     }
   }
 
-  private async get(path: string): Promise<unknown> {
+  private async get(path: string): Promise<Response> {
     let rejectedStatus: number | undefined;
     for (const baseUrl of this.baseUrls) {
       const controller = new AbortController();
@@ -80,7 +81,7 @@ export class BybitPublicMarketDataProvider {
           headers: { Accept: 'application/json' },
           signal: controller.signal,
         });
-        if (response.ok) return await response.json();
+        if (response.ok) return response;
         rejectedStatus = response.status;
       } catch {
         // Try the next official public endpoint.
@@ -112,8 +113,10 @@ export class BybitPublicMarketDataProvider {
       interval: String(intervalMinutes),
       limit: '200',
     });
-    const parsed = klineResponseSchema.parse(
+    const parsed = await parseProviderJson(
       await this.get(`/v5/market/kline?${query.toString()}`),
+      klineResponseSchema,
+      4_000_000,
     );
     if (parsed.retCode !== 0) {
       throw new ApiError(502, 'CRYPTO_PROVIDER_ERROR', 'The crypto candle request failed.');
@@ -133,8 +136,9 @@ export class BybitPublicMarketDataProvider {
 
   async getQuote(symbol: 'SOLUSDT'): Promise<CryptoQuote> {
     const query = new URLSearchParams({ category: 'spot', symbol });
-    const parsed = tickerResponseSchema.parse(
+    const parsed = await parseProviderJson(
       await this.get(`/v5/market/tickers?${query.toString()}`),
+      tickerResponseSchema,
     );
     if (parsed.retCode !== 0) {
       throw new ApiError(502, 'CRYPTO_PROVIDER_ERROR', 'The crypto ticker request failed.');
