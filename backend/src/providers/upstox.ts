@@ -5,11 +5,13 @@ import type {
   MarketQuote,
   MarketSymbol,
   OptionChainStrike,
+  OptionContract,
   OptionGreeks,
   OptionMarketData,
 } from '../domain/market-data.js';
 import { MARKET_INSTRUMENTS } from '../domain/market-data.js';
 import { ApiError } from '../lib/errors.js';
+import { parseProviderJson } from '../lib/provider-response.js';
 
 const candleSchema = z.tuple([
   z.string().datetime({ offset: true }),
@@ -86,6 +88,22 @@ const optionChainResponseSchema = z.object({
   ),
 });
 
+const optionContractResponseSchema = z.object({
+  status: z.literal('success'),
+  data: z.array(
+    z
+      .object({
+        instrument_key: z.string(),
+        expiry: z.string().date(),
+        strike_price: z.number(),
+        instrument_type: z.enum(['CE', 'PE']),
+        lot_size: z.number().int().positive(),
+        tick_size: z.number().positive(),
+      })
+      .passthrough(),
+  ),
+});
+
 function numberOrZero(value: number | null | undefined): number {
   return value ?? 0;
 }
@@ -154,7 +172,7 @@ export class UpstoxMarketDataProvider implements MarketDataProvider {
     }
   }
 
-  private async get(path: string): Promise<unknown> {
+  private async get(path: string): Promise<Response> {
     let response: Response;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
@@ -189,14 +207,15 @@ export class UpstoxMarketDataProvider implements MarketDataProvider {
         { providerStatus: response.status },
       );
     }
-    return response.json();
+    return response;
   }
 
   async getQuote(symbol: MarketSymbol): Promise<MarketQuote> {
     const instrumentKey = MARKET_INSTRUMENTS[symbol];
     const query = new URLSearchParams({ instrument_key: instrumentKey });
-    const parsed = quoteResponseSchema.parse(
+    const parsed = await parseProviderJson(
       await this.get(`/v3/market-quote/ltp?${query.toString()}`),
+      quoteResponseSchema,
     );
     const quote = Object.values(parsed.data)[0];
     if (!quote)
@@ -209,24 +228,27 @@ export class UpstoxMarketDataProvider implements MarketDataProvider {
       instrumentKey: quote.instrument_token,
       symbol,
       lastPrice: quote.last_price,
-      previousClose: quote.cp,
-      lastTradedQuantity: quote.ltq,
-      volume: quote.volume,
+      previousClose: quote.cp ?? 0,
+      lastTradedQuantity: quote.ltq ?? 0,
+      volume: quote.volume ?? 0,
       asOf: new Date().toISOString(),
     };
   }
 
   async getMarketDataFeedAuthorizeUrl(): Promise<string> {
-    const parsed = feedAuthorizeResponseSchema.parse(
+    const parsed = await parseProviderJson(
       await this.get('/v3/feed/market-data-feed/authorize'),
+      feedAuthorizeResponseSchema,
     );
     return parsed.data.authorized_redirect_uri;
   }
 
   async getIntradayCandles(symbol: MarketSymbol, intervalMinutes: number): Promise<Candle[]> {
     const instrumentKey = encodeURIComponent(MARKET_INSTRUMENTS[symbol]);
-    const parsed = candleResponseSchema.parse(
+    const parsed = await parseProviderJson(
       await this.get(`/v3/historical-candle/intraday/${instrumentKey}/minutes/${intervalMinutes}`),
+      candleResponseSchema,
+      8_000_000,
     );
     return mapCandles(parsed);
   }
@@ -238,10 +260,12 @@ export class UpstoxMarketDataProvider implements MarketDataProvider {
     to: string,
   ): Promise<Candle[]> {
     const instrumentKey = encodeURIComponent(MARKET_INSTRUMENTS[symbol]);
-    const parsed = candleResponseSchema.parse(
+    const parsed = await parseProviderJson(
       await this.get(
         `/v3/historical-candle/${instrumentKey}/minutes/${intervalMinutes}/${to}/${from}`,
       ),
+      candleResponseSchema,
+      8_000_000,
     );
     return mapCandles(parsed);
   }
@@ -251,8 +275,10 @@ export class UpstoxMarketDataProvider implements MarketDataProvider {
       instrument_key: MARKET_INSTRUMENTS[symbol],
       expiry_date: expiryDate,
     });
-    const parsed = optionChainResponseSchema.parse(
+    const parsed = await parseProviderJson(
       await this.get(`/v2/option/chain?${query.toString()}`),
+      optionChainResponseSchema,
+      8_000_000,
     );
     return parsed.data.map((strike) => ({
       expiry: strike.expiry,
@@ -261,6 +287,23 @@ export class UpstoxMarketDataProvider implements MarketDataProvider {
       pcr: strike.pcr ?? null,
       call: mapMarketData(strike.call_options ?? null),
       put: mapMarketData(strike.put_options ?? null),
+    }));
+  }
+
+  async getOptionContracts(symbol: MarketSymbol): Promise<OptionContract[]> {
+    const query = new URLSearchParams({ instrument_key: MARKET_INSTRUMENTS[symbol] });
+    const parsed = await parseProviderJson(
+      await this.get(`/v2/option/contract?${query.toString()}`),
+      optionContractResponseSchema,
+      8_000_000,
+    );
+    return parsed.data.map((contract) => ({
+      instrumentKey: contract.instrument_key,
+      expiry: contract.expiry,
+      strikePrice: contract.strike_price,
+      optionType: contract.instrument_type,
+      lotSize: contract.lot_size,
+      tickSize: contract.tick_size,
     }));
   }
 }
