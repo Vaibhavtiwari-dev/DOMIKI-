@@ -46,6 +46,15 @@ export interface OptionChainStrike {
   put: { instrumentKey: string; market: OptionMarketData; greeks: OptionGreeks } | null;
 }
 
+export interface OptionContract {
+  instrumentKey: string;
+  expiry: string;
+  strikePrice: number;
+  optionType: 'CE' | 'PE';
+  lotSize: number;
+  tickSize: number;
+}
+
 export const MARKET_INSTRUMENTS = {
   NIFTY: 'NSE_INDEX|Nifty 50',
   BANKNIFTY: 'NSE_INDEX|Nifty Bank',
@@ -69,4 +78,5 @@ export interface MarketDataProvider {
     to: string,
   ): Promise<Candle[]>;
   getOptionChain(symbol: MarketSymbol, expiryDate: string): Promise<OptionChainStrike[]>;
+  getOptionContracts(symbol: MarketSymbol): Promise<OptionContract[]>;
 }
