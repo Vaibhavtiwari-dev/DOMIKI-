@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Icosahedron, Float } from '@react-three/drei';
 import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing';
 import { useNavigate } from 'react-router-dom';
+import { initializeResearchSession } from '../services/api';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -39,11 +40,11 @@ const CoreMonolith = () => {
     }
   }, []);
 
-  useFrame((state) => {
+  useFrame((_, delta) => {
     if (meshRefInner.current) {
       // Subtle constant ambient movement
-      meshRefInner.current.rotation.x = state.clock.getElapsedTime() * -0.1;
-      meshRefInner.current.rotation.z = state.clock.getElapsedTime() * 0.05;
+      meshRefInner.current.rotation.x -= delta * 0.1;
+      meshRefInner.current.rotation.z += delta * 0.05;
     }
   });
 
@@ -77,10 +78,19 @@ const CoreMonolith = () => {
 
 const GlitchForm = () => {
   const navigate = useNavigate();
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState('');
 
-  const enterDemo = () => {
-    window.localStorage.setItem('dokimi_demo_mode', 'true');
-    navigate('/demo');
+  const enterDemo = async () => {
+    setStarting(true);
+    setError('');
+    try {
+      await initializeResearchSession();
+      navigate('/demo');
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Unable to initialize session.');
+      setStarting(false);
+    }
   };
 
   return (
@@ -88,24 +98,27 @@ const GlitchForm = () => {
       <div className="form-content-wrapper">
         <h2 className="form-heading">Request<br/>Access.</h2>
         <p className="form-subtext">
-          Institutional-grade options research and deterministic execution. Limited private alpha.
+          Local-first options research and paper execution. Private alpha.
         </p>
         
         <form onSubmit={(e) => e.preventDefault()} className="avant-form">
           <div className="input-group">
-            <input type="text" placeholder="IDENTITY [EMAIL]" className="avant-input" required />
+            <input type="text" placeholder="IDENTITY [EMAIL]" className="avant-input" disabled aria-disabled="true" />
           </div>
           <div className="input-group">
-            <input type="password" placeholder="PASSPHRASE" className="avant-input" required />
+            <input type="password" placeholder="PASSPHRASE" className="avant-input" disabled aria-disabled="true" />
           </div>
           
           <div className="form-actions">
-            <button className="btn-avant" type="button" onClick={enterDemo}>Initialize Session</button>
+            <button className="btn-avant" type="button" onClick={() => void enterDemo()} disabled={starting}>
+              {starting ? 'Initializing…' : 'Initialize Session'}
+            </button>
           </div>
         </form>
+        {error && <p className="form-error" role="alert">{error}</p>}
         
         <div className="form-footer">
-          <p className="footer-tag">SEC // SEBI // ALG-7</p>
+          <p className="footer-tag">RESEARCH // PAPER // LOCAL-FIRST</p>
           <p className="footer-tag">PROJECT DOKIMI &copy; 2026</p>
         </div>
       </div>
